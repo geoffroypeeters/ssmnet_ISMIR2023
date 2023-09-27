@@ -4,7 +4,7 @@
 # - convert plot to second (instead of frames)
 # - check package dependence
 # --- USAGE:
-# python -m ssm_deploy -c ./config_deploy.yaml -a /home/ids/gpeeters/M2-ATIAM-internship/music-structure-estimation/_references/rwc-pop/audio/RM-P001.wav
+# python -m ssmnet_example -c ./config_example.yaml -a /home/ids/gpeeters/M2-ATIAM-internship/music-structure-estimation/_references/rwc-pop/audio/RM-P001.wav
 
 from argparse import ArgumentParser
 import yaml
@@ -12,6 +12,8 @@ import pdb
 import pprint as pp
 import numpy as np
 
+import sys
+sys.path.append('../src')
 
 class SsmNetDeploy():
 
@@ -31,16 +33,16 @@ class SsmNetDeploy():
         print('m_get_features')
 
         import librosa
-        import ssm_dataset
+        import ssm_utils
 
         audio_v, sr_hz = librosa.load(audio_file)
 
-        logmel_m, time_sec_v = ssm_dataset.f_extract_feature(audio_v, sr_hz)
-        logmel_sync_m, time_sync_sec_v = ssm_dataset.f_reduce_time(
+        logmel_m, time_sec_v = ssm_utils.f_extract_feature(audio_v, sr_hz)
+        logmel_sync_m, time_sync_sec_v = ssm_utils.f_reduce_time(
             logmel_m,
             time_sec_v,
             self.config_d['features']['step_target_sec'])
-        feat_3m, time_sec_v = ssm_dataset.f_patches(
+        feat_3m, time_sec_v = ssm_utils.f_patches(
             logmel_sync_m, time_sync_sec_v,
             self.config_d['features']['patch_halfduration_frame'],
             self.config_d['features']['patch_hop_frame'])
@@ -65,7 +67,7 @@ class SsmNetDeploy():
         #hat_novelty_v, hat_ssm_m = my_lighting.model.get_novelty( torch.from_numpy(feat_3m) )
         # --- using ony torch
         model = ssm_model.SsmNet(self.config_d['model'], self.step_sec)
-        data = torch.load(self.config_d['model']['file'])
+        data = torch.load(self.config_d['model']['file'], map_location=torch.device('cpu'))
         data_clean = {}
         for key in data['state_dict'].keys(): 
             data_clean[key.replace('model.', '')] = data['state_dict'][key]
