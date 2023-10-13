@@ -6,6 +6,8 @@
 # --- USAGE:
 # python -m ssmnet_example -c ./config_example.yaml -a /home/ids/gpeeters/M2-ATIAM-internship/music-structure-estimation/_references/rwc-pop/audio/RM-P001.wav
 
+from __future__ import annotations
+
 from argparse import ArgumentParser
 import yaml
 import pdb
@@ -27,6 +29,7 @@ class SsmNetDeploy():
 
 
     def m_get_features(self, audio_file: str) -> tuple[np.ndarray, np.ndarray]:
+    #def m_get_features(self, audio_file):
         """
         Compute the audio features
         """
@@ -53,6 +56,7 @@ class SsmNetDeploy():
     
 
     def m_get_ssm_novelty(self, feat_3m: np.ndarray)  -> tuple[np.ndarray, np.ndarray]:
+    #def m_get_ssm_novelty(self, feat_3m):
         """
         Compute the Self-Similarity-Matrix and novelty-curve using a pre-trained SSM-Net
         """
@@ -81,6 +85,7 @@ class SsmNetDeploy():
 
 
     def m_get_boundaries(self, hat_novelty_np: np.ndarray, time_sec_v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    #def m_get_boundaries(self, hat_novelty_np, time_sec_v):
         """
         Estimate the boundaries
         """
@@ -139,6 +144,6 @@ if __name__ == "__main__":
     feat_3m, time_sec_v = ssmnet_deploy.m_get_features(args.audio_file)
     hat_ssm_np, hat_novelty_np = ssmnet_deploy.m_get_ssm_novelty(feat_3m)
     hat_boundary_sec_v, hat_boundary_frame_v = ssmnet_deploy.m_get_boundaries(hat_novelty_np, time_sec_v)
-    ssmnet_deploy.m_plot(hat_ssm_np, hat_novelty_np, hat_boundary_frame_v)
+    #ssmnet_deploy.m_plot(hat_ssm_np, hat_novelty_np, hat_boundary_frame_v)
 
     print(hat_boundary_sec_v)

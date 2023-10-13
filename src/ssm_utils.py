@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from scipy.signal import convolve
 from scipy.signal import find_peaks

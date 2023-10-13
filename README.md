@@ -10,6 +10,23 @@ If you use this code and/or paper in your research please cite:
 
 Geoffroy Peeters, "Self-Similarity-Based and Novelty-based loss for music structure analysis", in International Society for Music Information Retrieval Conference (ISMIR), 2023.
 
+## Installation
+
+```
+git clone https://github.com/geoffroypeeters/ssmnet_ISMIR2023.git
+cd ssmnet_ISMIR2023/
+python -m venv env_ssmnet
+source env_ssmnet/bin/activate
+pip install -r environment.yml 
+``````
+
+## Usage
+
+```
+cd example
+python -m ssmnet_example -c ./config_example.yaml -a /home/ids/gpeeters/M2-ATIAM-internship/music-structure-estimation/_references/rwc-pop/audio/RM-P001.wav
+```
+
 ## Code organization
 
 ```
@@ -54,3 +71,6 @@ example
     |--config_example.py # --- contains the configuration of the model
     |--*.ckpt  # --- contains the checkpoint of the model for the configuration `do_nb_attention=1` and `do_nb_attention=3`
 ```
+
+provides an example and the parameters file corresponding to the paper.
+
