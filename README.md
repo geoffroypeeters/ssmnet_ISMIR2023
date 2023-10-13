@@ -24,7 +24,7 @@ pip install -r environment.yml
 
 ```
 cd example
-python -m ssmnet_example -c ./config_example.yaml -a /home/ids/gpeeters/M2-ATIAM-internship/music-structure-estimation/_references/rwc-pop/audio/RM-P001.wav
+python -m ssmnet_example -c ./config_example.yaml -a $fullpath_to_audio_file
 ```
 
 ## Code organization
