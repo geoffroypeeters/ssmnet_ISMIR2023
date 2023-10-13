@@ -38,10 +38,7 @@ class SsmNetDeploy():
         import librosa
         import ssm_utils
 
-        try:
-            audio_v, sr_hz = librosa.load(audio_file)
-        except:
-            print(f'something wrong in reading audio file "{audio_file}"')
+        audio_v, sr_hz = librosa.load(audio_file)
         assert len(audio_v)>0, f'something wrong in reading audio file "{audio_file}"'
 
         logmel_m, time_sec_v = ssm_utils.f_extract_feature(audio_v, sr_hz)
