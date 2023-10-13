@@ -39,7 +39,7 @@ class SsmNetDeploy():
         import ssm_utils
 
         audio_v, sr_hz = librosa.load(audio_file)
-
+        print(audio_v.shape)
         logmel_m, time_sec_v = ssm_utils.f_extract_feature(audio_v, sr_hz)
         logmel_sync_m, time_sync_sec_v = ssm_utils.f_reduce_time(
             logmel_m,
