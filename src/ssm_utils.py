@@ -87,6 +87,7 @@ def f_extract_feature(audio_v: np.ndarray,
 
     # --- 1) compute mel-spectrogram
     mel_m = librosa.feature.melspectrogram(y=audio_v, sr=sr_hz, n_mels=80, fmax=8000)
+    print(mel_m.shape)
     # --- 2) convert to log
     gamma = 100
     logmel_m = np.log(1 + gamma * mel_m)
