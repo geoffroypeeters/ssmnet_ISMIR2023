@@ -44,7 +44,7 @@ In the paper, the evaluation using
 - `salami-ia` is done using the subset of entries of `salami.pyjama` with key `SOURCE` equal to `IA`
 - `salami-two` is done using the subset of entries of `salami.pyjama` which has two annotations (both `textfile1_functions.txt` and `textfile2_functions.txt` keys are defined)
 
-```
+```python
 with open('salami.pyjama', encoding = "utf-8") as json_fid: data_d = json.load(json_fid)
 
 subentry_l = [entry for entry in data_d['collection']['entry'] if entry['CLASS'][0]['value']=='popular']
