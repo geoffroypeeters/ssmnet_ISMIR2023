@@ -17,15 +17,50 @@ git clone https://github.com/geoffroypeeters/ssmnet_ISMIR2023.git
 cd ssmnet_ISMIR2023/
 python -m venv env_ssmnet
 source env_ssmnet/bin/activate
-pip install -r environment.yml 
+pip install -e .
 ``````
 
 ## Usage
 
+### Command-line interface
+
+This package includes a CLI as well as pretrained models. To use it, type in a terminal:
 ```
-cd example
-python -m ssmnet_example -c ./config_example.yaml -a $fullpath_to_audio_file
+ssmnet $fullpath_to_audio_file -o csv_file -p pdf_file
 ```
+
+
+### Output formats
+
+The output format is .csv. The output file is specified with -o.
+
+```
+segment_start_time_sec,segment_stop_time_sec,segment_label
+0.000,11.192,1.000
+11.192,25.588,1.000
+25.588,37.663,1.000
+37.663,50.666,1.000
+...
+```
+
+### Python API
+
+Alternatively, the functions defined in `ssmnet/core.py` can directly be called within another Python code.
+```python
+ssmnet_deploy = SsmNetDeploy(config_d)
+# get the audio features patches
+feat_3m, time_sec_v = ssmnet_deploy.m_get_features(args.audio_file)
+# process through SSMNet to get the Self-Similarity-Matrix and Novelty-Curve
+hat_ssm_np, hat_novelty_np = ssmnet_deploy.m_get_ssm_novelty(feat_3m)
+# estimate segment boundries from the Novelty-Curve
+hat_boundary_sec_v, hat_boundary_frame_v = ssmnet_deploy.m_get_boundaries(hat_novelty_np, time_sec_v)
+# export as .csv
+ssmnet_deploy.m_plot(hat_ssm_np, hat_novelty_np, hat_boundary_frame_v, args.output_pdf_file)
+# export as .pdf
+ssmnet_deploy.m_export_csv(hat_boundary_sec_v, args.output_csv_file)
+```
+
+
 
 ## Code organization
 
@@ -58,19 +93,14 @@ len(subentry_l) # ---> 882
 ```
 
 ```
-src
-    |--ssm_model.py # --- is the pytorch code of the model
-    |--ssm_utils.py
+ssmnet
+    |--/weights_deploy/
+            |--*.pt  # weights of pre-trained network for the model with `do_nb_attention=1` and `do_nb_attention=3`
+    |--core
+    |--example
+    |--model.py # --- is the pytorch code of the model
+    |--utils.py
 ```
 
 contains the code of the library
-
-```
-example
-    |--ssm_example.py # --- provide an example of the code usage to extrac the structure from a given file
-    |--config_example.py # --- contains the configuration of the model
-    |--*.ckpt  # --- contains the checkpoint of the model for the configuration `do_nb_attention=1` and `do_nb_attention=3`
-```
-
-provides an example and the parameters file corresponding to the paper.
 

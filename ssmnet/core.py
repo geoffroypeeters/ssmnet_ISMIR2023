@@ -1,19 +1,20 @@
-# -*- coding: utf-8 -*-
-# 2023/09/20 test deployment of ssmnet for github
-# --- TODO: 
-# - convert plot to second (instead of frames)
-# - check package dependence
-# --- USAGE:
-# python -m ssmnet_example -c ./config_example.yaml -a /home/ids/gpeeters/M2-ATIAM-internship/music-structure-estimation/_references/rwc-pop/audio/RM-P001.wav
-
 from __future__ import annotations
 
+import os
 import sys
-from argparse import ArgumentParser
 import yaml
 import pdb
 import pprint as pp
 import numpy as np
+from typing import Tuple
+
+import warnings
+try:
+    MATPLOTLIB_AVAILABLE = True
+    import matplotlib.pyplot as plt
+except (IndexError, ModuleNotFoundError):
+    MATPLOTLIB_AVAILABLE = False
+
 
 #import matplotlib.pyplot as plt
 import librosa
@@ -22,22 +23,21 @@ import torch
 import ssmnet.utils
 import ssmnet.model
 
-from typing import Tuple
+
 
 class SsmNetDeploy():
 
     def __init__(self, config_d: dict):
         """
+        Args:
+            dictionary coming from configuration file
         """
-        print('__init__')
-
         self.config_d = config_d
         return
 
 
     def m_get_features(self, 
                        audio_file: str) -> Tuple[np.ndarray, np.ndarray]:
-    #def m_get_features(self, audio_file):
         """
         Compute the audio features
 
@@ -47,8 +47,6 @@ class SsmNetDeploy():
             feat_3m, 
             time_sec_v
         """
-        print('m_get_features')
-
         try:
             audio_v, sr_hz = librosa.load(audio_file)
         except:
@@ -83,15 +81,15 @@ class SsmNetDeploy():
             hat_ssm_np
             hat_novelty_np
         """
-        print('m_get_ssm_novelty')
-
         # --- using torchlightning
         #import ssm_lightning
         #my_lighting = ssm_lightning.SsmLigthing.load_from_checkpoint(config_d['model']['file'])
         #hat_novelty_v, hat_ssm_m = my_lighting.model.get_novelty( torch.from_numpy(feat_3m) )
         # --- using ony torch
         model = ssmnet.model.SsmNet(self.config_d['model'], self.step_sec)
-        file_state_dict =  self.config_d['model']['file'].replace('.ckpt', '_state_dict.pt')
+        file_state_dict =  os.path.join(os.path.dirname(__file__), 
+                                        "weights_deploy", 
+                                        self.config_d['model']['file'].replace('.ckpt', '_state_dict.pt'))
         if False: # --- load torchlightning -> need to convert, depends on the exact path of modules :-()
             data = torch.load(self.config_d['model']['file'], map_location=torch.device('cpu'))
             data_clean = {}
@@ -123,8 +121,6 @@ class SsmNetDeploy():
             hat_boundary_sec_v, 
             hat_boundary_frame_v
         """
-        print('m_get_boundaries')
-
         hat_boundary_frame_v = ssmnet.utils.f_get_peaks(hat_novelty_np, self.config_d['postprocessing'], self.step_sec)
 
         hat_boundary_sec_v = time_sec_v[hat_boundary_frame_v]
@@ -139,7 +135,8 @@ class SsmNetDeploy():
     def m_plot(self, 
                hat_ssm_np: np.ndarray, 
                hat_novelty_np: np.ndarray, 
-               hat_boundary_frame_v: np.ndarray):
+               hat_boundary_frame_v: np.ndarray,
+               output_file: str):
         """
         Plot and save to pdf file
 
@@ -147,10 +144,13 @@ class SsmNetDeploy():
             hat_ssm_np
             hat_novelty_np
             hat_boundary_frame_v
+            output_file
         Returns:
 
         """
-        print('m_plot')
+        if not MATPLOTLIB_AVAILABLE:
+            warnings.warn("Exporting in pdf format requires Matplotlib to be installed. Skipping...")
+            return
 
         plt.clf()
         plt.imshow(hat_ssm_np)
@@ -159,31 +159,29 @@ class SsmNetDeploy():
         plt.plot((1-hat_novelty_np/max(hat_novelty_np))*nb_frame, 'r', linewidth=1)
         for x in hat_boundary_frame_v:
             plt.plot([x,x], [nb_frame,0], 'm', linewidth=1)
-        plt.savefig('./fig_deploy.pdf')
+        plt.savefig(output_file)
 
         return
     
+    def m_export_csv(self, 
+                hat_boundary_sec_v: np.ndarray, 
+                output_file: str):
+        """
+        Export boundary in a .csv file
+
+        Args:
+            hat_boundary_sec_v
+            output_file
+        Returns:
+
+        """
+        start = hat_boundary_sec_v[0:-1]
+        stop = hat_boundary_sec_v[1:]
+        label = np.ones(len(start)) 
+        data = np.stack((start, stop, label), axis=1)
+        header = "segment_start_time_sec,segment_stop_time_sec,segment_label"
+
+        np.savetxt(output_file, data, delimiter=',', fmt='%.3f', header=header, comments="")
 
 
-
-if __name__ == "__main__":
-
-    parser = ArgumentParser(description='Compute SSM, novelty and boundaries using SSM-Net')
-    parser.add_argument("-a", "--audio_file", 
-                        help='audio file to process')
-    parser.add_argument("-o", "--output_file", 
-                        help='output file that contains the boundary positions [in sec]')
-    parser.add_argument("-c", "--config_file", 
-                        help='fullpath to a yaml configuration file', required=True)
-    args = parser.parse_args()
-
-    print(f'parsing yaml file {args.config_file}')
-    with open(args.config_file, "r", encoding="utf-8") as fid: config_d = yaml.safe_load(fid)
-
-    ssmnet_deploy = SsmNetDeploy(config_d)
-    feat_3m, time_sec_v = ssmnet_deploy.m_get_features(args.audio_file)
-    hat_ssm_np, hat_novelty_np = ssmnet_deploy.m_get_ssm_novelty(feat_3m)
-    hat_boundary_sec_v, hat_boundary_frame_v = ssmnet_deploy.m_get_boundaries(hat_novelty_np, time_sec_v)
-    #ssmnet_deploy.m_plot(hat_ssm_np, hat_novelty_np, hat_boundary_frame_v)
-
-    print(hat_boundary_sec_v)
+        return
