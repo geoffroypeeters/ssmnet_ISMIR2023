@@ -8,7 +8,15 @@ Include a pre-trained model.
 
 If you use this code and/or paper in your research please cite:
 
-Geoffroy Peeters, "Self-Similarity-Based and Novelty-based loss for music structure analysis", in International Society for Music Information Retrieval Conference (ISMIR), 2023.
+```
+@inproceedings{SSMNet,
+    author = {Peeters, Geoffroy},
+    booktitle = {Proceedings of the 24th International Society for Music Information Retrieval Conference, ISMIR 2023},
+    publisher = {International Society for Music Information Retrieval},
+    title = {Self-Similarity-Based and Novelty-based loss for music structure analysis},
+    year = {2023}
+}
+```
 
 ## Installation
 
