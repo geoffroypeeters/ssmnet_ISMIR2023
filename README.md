@@ -23,8 +23,10 @@ If you use this code and/or paper in your research please cite:
 ```
 git clone https://github.com/geoffroypeeters/ssmnet_ISMIR2023.git
 cd ssmnet_ISMIR2023/
+
 python -m venv env_ssmnet
 source env_ssmnet/bin/activate
+
 pip install -e .
 ``````
 
@@ -56,12 +58,14 @@ segment_start_time_sec,segment_stop_time_sec,segment_label
 Alternatively, the functions defined in `ssmnet/core.py` can directly be called within another Python code.
 ```python
 ssmnet_deploy = SsmNetDeploy(config_d)
+
 # get the audio features patches
 feat_3m, time_sec_v = ssmnet_deploy.m_get_features(args.audio_file)
 # process through SSMNet to get the Self-Similarity-Matrix and Novelty-Curve
 hat_ssm_np, hat_novelty_np = ssmnet_deploy.m_get_ssm_novelty(feat_3m)
 # estimate segment boundries from the Novelty-Curve
 hat_boundary_sec_v, hat_boundary_frame_v = ssmnet_deploy.m_get_boundaries(hat_novelty_np, time_sec_v)
+
 # export as .csv
 ssmnet_deploy.m_plot(hat_ssm_np, hat_novelty_np, hat_boundary_frame_v, args.output_pdf_file)
 # export as .pdf
