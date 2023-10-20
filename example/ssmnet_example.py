@@ -8,14 +8,21 @@
 
 from __future__ import annotations
 
+import sys
 from argparse import ArgumentParser
 import yaml
 import pdb
 import pprint as pp
 import numpy as np
 
-import sys
-sys.path.append('../src')
+#import matplotlib.pyplot as plt
+import librosa
+import torch
+
+import ssmnet.utils
+import ssmnet.model
+
+from typing import Tuple
 
 class SsmNetDeploy():
 
@@ -28,25 +35,34 @@ class SsmNetDeploy():
         return
 
 
-    def m_get_features(self, audio_file: str) -> tuple[np.ndarray, np.ndarray]:
+    def m_get_features(self, 
+                       audio_file: str) -> Tuple[np.ndarray, np.ndarray]:
     #def m_get_features(self, audio_file):
         """
         Compute the audio features
+
+        Args:
+            audio_file
+        Returns:
+            feat_3m, 
+            time_sec_v
         """
         print('m_get_features')
 
-        import librosa
-        import ssm_utils
+        try:
+            audio_v, sr_hz = librosa.load(audio_file)
+        except:
+            sys.exit(f'something wrong in reading audio file "{audio_file}"')
+        
+        if len(audio_v)==0:
+            sys.exit(f'something wrong in reading audio file "{audio_file}"')
 
-        audio_v, sr_hz = librosa.load(audio_file)
-        assert len(audio_v)>0, f'something wrong in reading audio file "{audio_file}"'
-
-        logmel_m, time_sec_v = ssm_utils.f_extract_feature(audio_v, sr_hz)
-        logmel_sync_m, time_sync_sec_v = ssm_utils.f_reduce_time(
+        logmel_m, time_sec_v = ssmnet.utils.f_extract_feature(audio_v, sr_hz)
+        logmel_sync_m, time_sync_sec_v = ssmnet.utils.f_reduce_time(
             logmel_m,
             time_sec_v,
             self.config_d['features']['step_target_sec'])
-        feat_3m, time_sec_v = ssm_utils.f_patches(
+        feat_3m, time_sec_v = ssmnet.utils.f_patches(
             logmel_sync_m, time_sync_sec_v,
             self.config_d['features']['patch_halfduration_frame'],
             self.config_d['features']['patch_hop_frame'])
@@ -56,28 +72,37 @@ class SsmNetDeploy():
         return feat_3m, time_sec_v
     
 
-    def m_get_ssm_novelty(self, feat_3m: np.ndarray)  -> tuple[np.ndarray, np.ndarray]:
-    #def m_get_ssm_novelty(self, feat_3m):
+    def m_get_ssm_novelty(self,
+                          feat_3m: np.ndarray)  -> Tuple[np.ndarray, np.ndarray]:
         """
         Compute the Self-Similarity-Matrix and novelty-curve using a pre-trained SSM-Net
+
+        Args:
+            feat_3m
+        Returns:
+            hat_ssm_np
+            hat_novelty_np
         """
         print('m_get_ssm_novelty')
 
-        import torch
-        import ssm_model
-    
         # --- using torchlightning
         #import ssm_lightning
         #my_lighting = ssm_lightning.SsmLigthing.load_from_checkpoint(config_d['model']['file'])
         #hat_novelty_v, hat_ssm_m = my_lighting.model.get_novelty( torch.from_numpy(feat_3m) )
         # --- using ony torch
-        model = ssm_model.SsmNet(self.config_d['model'], self.step_sec)
-        data = torch.load(self.config_d['model']['file'], map_location=torch.device('cpu'))
-        data_clean = {}
-        for key in data['state_dict'].keys(): 
-            data_clean[key.replace('model.', '')] = data['state_dict'][key]
-        model.load_state_dict(data_clean)
-
+        model = ssmnet.model.SsmNet(self.config_d['model'], self.step_sec)
+        file_state_dict =  self.config_d['model']['file'].replace('.ckpt', '_state_dict.pt')
+        if False: # --- load torchlightning -> need to convert, depends on the exact path of modules :-()
+            data = torch.load(self.config_d['model']['file'], map_location=torch.device('cpu'))
+            data_clean = {}
+            for key in data['state_dict'].keys(): 
+                data_clean[key.replace('model.', '')] = data['state_dict'][key]
+            model.load_state_dict(data_clean)
+            # --- export to only state_dict -> this is the way to go
+            torch.save(model.state_dict(), file_state_dict)
+        else:
+            model.load_state_dict(torch.load(file_state_dict))
+        
         hat_novelty_v, hat_ssm_m = model.get_novelty( torch.from_numpy(feat_3m) )
         hat_novelty_np = hat_novelty_v.detach().squeeze().numpy()
         hat_ssm_np = hat_ssm_m.detach().squeeze().numpy()
@@ -85,16 +110,22 @@ class SsmNetDeploy():
         return hat_ssm_np, hat_novelty_np
 
 
-    def m_get_boundaries(self, hat_novelty_np: np.ndarray, time_sec_v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    #def m_get_boundaries(self, hat_novelty_np, time_sec_v):
+    def m_get_boundaries(self, 
+                         hat_novelty_np: np.ndarray, 
+                         time_sec_v: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Estimate the boundaries
+
+        Args:
+            hat_novelty_np
+            time_sec_v
+        Returns:
+            hat_boundary_sec_v, 
+            hat_boundary_frame_v
         """
         print('m_get_boundaries')
 
-        import ssm_utils
-
-        hat_boundary_frame_v = ssm_utils.f_get_peaks(hat_novelty_np, self.config_d['postprocessing'], self.step_sec)
+        hat_boundary_frame_v = ssmnet.utils.f_get_peaks(hat_novelty_np, self.config_d['postprocessing'], self.step_sec)
 
         hat_boundary_sec_v = time_sec_v[hat_boundary_frame_v]
         # --- add start and end-time
@@ -105,13 +136,21 @@ class SsmNetDeploy():
         return hat_boundary_sec_v, hat_boundary_frame_v
 
 
-    def m_plot(self, hat_ssm_np: np.ndarray, hat_novelty_np: np.ndarray, hat_boundary_frame_v: np.ndarray):
+    def m_plot(self, 
+               hat_ssm_np: np.ndarray, 
+               hat_novelty_np: np.ndarray, 
+               hat_boundary_frame_v: np.ndarray):
         """
         Plot and save to pdf file
+
+        Args:
+            hat_ssm_np
+            hat_novelty_np
+            hat_boundary_frame_v
+        Returns:
+
         """
         print('m_plot')
-
-        import matplotlib.pyplot as plt
 
         plt.clf()
         plt.imshow(hat_ssm_np)

@@ -4,13 +4,15 @@ import numpy as np
 from scipy.signal import convolve
 from scipy.signal import find_peaks
 
+from typing import Tuple
+
 import torch
 import librosa
 
 
 def f_weighted_bce_loss(hat_y, y):
     """
-    computes a weighted BCE 
+    Computes a weighted BCE 
 
     Args:
         hat_y
@@ -33,7 +35,7 @@ def f_weighted_bce_loss(hat_y, y):
 
 def f_get_peaks(data_v, config_d, step_sec):
     """
-    detect peaks of a function, peaks are defined as local maxima above a threshold
+    Detect peaks of a function, peaks are defined as local maxima above a threshold
 
     Args:
         data_v
@@ -72,9 +74,9 @@ def f_get_peaks(data_v, config_d, step_sec):
 
 
 def f_extract_feature(audio_v: np.ndarray,
-                    sr_hz: float) -> tuple[np.ndarray, np.ndarray]:
+                    sr_hz: float) -> Tuple[np.ndarray, np.ndarray]:
     """
-    compute audio features
+    Compute audio features
 
     Args:
         audio_v (np.ndarray)
@@ -100,9 +102,9 @@ def f_extract_feature(audio_v: np.ndarray,
 
 def f_reduce_time(data_m: np.ndarray,
                 time_sec_v: np.ndarray,
-                step_target_sec: float) -> tuple[np.ndarray, np.ndarray]:
+                step_target_sec: float) -> Tuple[np.ndarray, np.ndarray]:
     """
-    reduce time axis of data_m by averaging
+    Reduce the time axis of data_m using an averaging method
 
     Args:
         data_m
@@ -128,9 +130,9 @@ def f_reduce_time(data_m: np.ndarray,
 def f_patches(data_m: np.ndarray,
             time_sec_v: np.ndarray,
             patch_halfduration_frame: int = 20,
-            patch_hop_frame: int = 10) -> tuple[np.ndarray, np.ndarray]:
+            patch_hop_frame: int = 10) -> Tuple[np.ndarray, np.ndarray]:
     """
-    convert data_m to a list of patches of length 2*patch_halfduration_frame
+    Convert data_m to a list of patches of length 2*patch_halfduration_frame
 
     Args:
         data (dim, nb_frame)
@@ -153,8 +155,17 @@ def f_patches(data_m: np.ndarray,
     return np.asarray(data_l), np.asarray(time_sec_l)
 
 
-def f_groundtruth_from_annotation(time_sec_v, annot_l):
+def f_groundtruth_from_annotation(time_sec_v: np.ndarray, 
+                                  annot_l: list) -> Tuple[np.ndarray, np.ndarray]:
     """
+    Construct a ground-truth Self-Similarity-Matrix (SSM) and novelvely curve from annotations
+
+    Args:
+        time_sec_v (nb_frame,): target time axis of the SSM
+        annot_l:    list of structure segments (each segment if a dictionary with key 'time', 'duration', 'value')
+    Returns:
+        gt_SSM_m (nb_frame,): 
+        gt_novelty_v (nb_frame,): 
     """
 
     # --- get the total number of class

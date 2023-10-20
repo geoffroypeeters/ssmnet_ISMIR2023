@@ -10,21 +10,23 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import torch.optim as optim
 
-
-import pdb
-import typing
-
+from typing import Tuple
 
 class SsmNet(nn.Module):
+
+    """ Class representing SSM-Net model in pytorch"""
+    
     def __init__(self, config, step_sec):
         """
         Args:
             - config
             - step_sec
+        Returns:
+
         """
         super(SsmNet, self).__init__()
         self.config = config
-        
+
 
         # -------------------------------------
         layer_l = []
@@ -69,13 +71,14 @@ class SsmNet(nn.Module):
                     self.conv_novelty.weight.requires_grad = False
 
 
-    def forward(self, feat_4m):
+    def forward(self, 
+                feat_4m: np.ndarray) -> np.ndarray:
         """
-        description:
-            compute embedding
-        inputs:
+        Compute embedding
+
+        Args:
             feat_4m (n_batch=1, T, f=80, t=40)
-        outputs:
+        Returns:
             embedding_m (T, dim_embed)
         """
 
@@ -95,13 +98,14 @@ class SsmNet(nn.Module):
         return embedding_m
 
 
-    def get_ssm(self, feat_4m):
+    def get_ssm(self,
+                feat_4m: np.ndarray) -> np.ndarray:
         """
-        description:
-            compute embedding then hat_ssm
-        inputs:
+        Compute embedding then hat_ssm
+        
+        Args:
             feat_4m (n_batch=1, T, f=80, t=40)
-        outputs:
+        Returns:
             hat_ssm_m (T, T)
         """
 
@@ -110,13 +114,14 @@ class SsmNet(nn.Module):
         return hat_ssm_m
 
 
-    def get_novelty(self, feat_4m):
+    def get_novelty(self,
+                    feat_4m: np.ndarray) ->  Tuple[np.ndarray, np.ndarray]:
         """
-        description:
-            compute embedding then hat_ssm then hat_prob_boundary
-        inputs:
+        Compute embedding then hat_ssm then hat_prob_boundary
+        
+        Args:
             feat_4m (n_batch=1, T, f=80, t=40)
-        outputs:
+        Returns:
             hat_prob_boundary (T,)
             ssm_hat (T, T)
         """
@@ -133,9 +138,16 @@ class SsmNet(nn.Module):
         return hat_novelty_v, hat_ssm_m
 
 
-def f_checkerboard_kernel(Ldemi=10, sigma=5):
+def f_checkerboard_kernel(Ldemi: int = 10,
+                          sigma: float = 5) -> np.ndarray:
     """
-    description
+    Compute Jonathan Foote checkerboard kernel with a damong gaussian window
+
+    Args:
+        Ldemi: half size of kernerl
+        sigma: value of Gaussian damping function
+    Returns:
+        C_m (2*Ldemi+1, 2*Ldemi+1): kernel
     """
     f_sign = lambda value: 1 if value >= 0 else -1
 
